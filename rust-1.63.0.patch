@@ -1,8 +1,8 @@
 diff --git a/Cargo.lock b/Cargo.lock
-index 6b2146ad3ed..1f908a85046 100644
+index 5db3c6d55..a54c97cce 100644
 --- a/Cargo.lock
 +++ b/Cargo.lock
-@@ -2756,9 +2756,9 @@ dependencies = [
+@@ -3024,9 +3024,9 @@ dependencies = [
  
  [[package]]
  name = "psm"
@@ -14,19 +14,7 @@ index 6b2146ad3ed..1f908a85046 100644
  dependencies = [
   "cc",
  ]
-@@ -4596,9 +4596,9 @@ dependencies = [
- 
- [[package]]
- name = "snapbox-macros"
--version = "0.3.0"
-+version = "0.3.1"
- source = "registry+https://github.com/rust-lang/crates.io-index"
--checksum = "8a253e6f894cfa440cba00600a249fa90869d8e0ec45ab274a456e043a0ce8f2"
-+checksum = "485e65c1203eb37244465e857d15a26d3a85a5410648ccb53b18bd44cb3a7336"
- 
- [[package]]
- name = "socket2"
-@@ -4618,9 +4618,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
+@@ -4998,9 +4998,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
  
  [[package]]
  name = "stacker"
@@ -39,22 +27,22 @@ index 6b2146ad3ed..1f908a85046 100644
   "cc",
   "cfg-if 1.0.0",
 diff --git a/compiler/rustc_llvm/build.rs b/compiler/rustc_llvm/build.rs
-index 28e092c1eb7..b4b26fb23cc 100644
+index 7729ec6be..ffbf90cf3 100644
 --- a/compiler/rustc_llvm/build.rs
 +++ b/compiler/rustc_llvm/build.rs
-@@ -10,7 +10,6 @@
-     "aarch64",
-     "amdgpu",
-     "avr",
--    "m68k",
-     "mips",
-     "powerpc",
-     "systemz",
+@@ -137,7 +137,6 @@ fn main() {
+         "aarch64",
+         "amdgpu",
+         "avr",
+-        "m68k",
+         "mips",
+         "powerpc",
+         "systemz",
 diff --git a/compiler/rustc_llvm/src/lib.rs b/compiler/rustc_llvm/src/lib.rs
-index 8542dcf5bf0..888cd0a6430 100644
+index 8eade02a4..ad3cb421f 100644
 --- a/compiler/rustc_llvm/src/lib.rs
 +++ b/compiler/rustc_llvm/src/lib.rs
-@@ -94,14 +94,6 @@ fn init() { }
+@@ -92,14 +92,6 @@ pub fn initialize_available_targets() {
          LLVMInitializeAVRAsmPrinter,
          LLVMInitializeAVRAsmParser
      );
@@ -69,46 +57,61 @@ index 8542dcf5bf0..888cd0a6430 100644
      init_target!(
          llvm_component = "mips",
          LLVMInitializeMipsTargetInfo,
+diff --git a/library/panic_unwind/src/gcc.rs b/library/panic_unwind/src/gcc.rs
+index a0297b4b2..8db74f66b 100644
+--- a/library/panic_unwind/src/gcc.rs
++++ b/library/panic_unwind/src/gcc.rs
+@@ -263,7 +263,7 @@ cfg_if::cfg_if! {
+         }
+ 
+         cfg_if::cfg_if! {
+-            if #[cfg(all(windows, target_arch = "x86_64", target_env = "gnu"))] {
++            if #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64"), target_env = "gnu"))] {
+                 // On x86_64 MinGW targets, the unwinding mechanism is SEH however the unwind
+                 // handler data (aka LSDA) uses GCC-compatible encoding.
+                 #[lang = "eh_personality"]
 diff --git a/library/unwind/src/libunwind.rs b/library/unwind/src/libunwind.rs
-index a5b6193b086..e4bdd986f0b 100644
+index 7b78bda42..8eb4a4484 100644
 --- a/library/unwind/src/libunwind.rs
 +++ b/library/unwind/src/libunwind.rs
-@@ -90,7 +90,10 @@ pub enum _Unwind_Context {}
+@@ -37,7 +37,7 @@ pub const unwinder_private_data_size: usize = 20;
+ pub const unwinder_private_data_size: usize = 5;
+ 
+ #[cfg(all(target_arch = "aarch64", target_pointer_width = "64"))]
+-pub const unwinder_private_data_size: usize = 2;
++pub const unwinder_private_data_size: usize = 6;
+ 
+ #[cfg(all(target_arch = "aarch64", target_pointer_width = "32"))]
+ pub const unwinder_private_data_size: usize = 5;
+@@ -90,7 +90,13 @@ pub type _Unwind_Exception_Cleanup_Fn =
  // rustc_codegen_ssa::src::back::symbol_export, rustc_middle::middle::exported_symbols
  // and RFC 2841
  #[cfg_attr(
 -    all(feature = "llvm-libunwind", any(target_os = "fuchsia", target_os = "linux")),
 +    any(
-+        all(feature = "llvm-libunwind", any(target_os = "fuchsia", target_os = "linux")),
++        all(
++            feature = "llvm-libunwind",
++            any(target_os = "fuchsia", target_os = "linux")
++        ),
 +        all(target_os = "windows", target_env = "gnu", target_abi = "llvm")
 +    ),
      link(name = "unwind", kind = "static", modifiers = "-bundle")
  )]
  extern "C-unwind" {
+@@ -269,7 +275,7 @@ if #[cfg(not(all(target_os = "ios", target_arch = "arm")))] {
+ } // cfg_if!
+ 
+ cfg_if::cfg_if! {
+-if #[cfg(all(windows, target_arch = "x86_64", target_env = "gnu"))] {
++if #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64"), target_env = "gnu"))] {
+     // We declare these as opaque types. This is fine since you just need to
+     // pass them to _GCC_specific_handler and forget about them.
+     pub enum EXCEPTION_RECORD {}
 diff --git a/src/bootstrap/dist.rs b/src/bootstrap/dist.rs
-index 42352285182..6a5438b27d9 100644
+index b1fae356d..053844791 100644
 --- a/src/bootstrap/dist.rs
 +++ b/src/bootstrap/dist.rs
-@@ -383,18 +383,6 @@ fn prepare_image(builder: &Builder<'_>, compiler: Compiler, image: &Path) {
- 
-             builder.install(&builder.rustdoc(compiler), &image.join("bin"), 0o755);
- 
--            let ra_proc_macro_srv = builder
--                .ensure(tool::RustAnalyzerProcMacroSrv {
--                    compiler: builder.compiler_for(
--                        compiler.stage,
--                        builder.config.build,
--                        compiler.host,
--                    ),
--                    target: compiler.host,
--                })
--                .expect("rust-analyzer-proc-macro-server always builds");
--            builder.install(&ra_proc_macro_srv, &image.join("libexec"), 0o755);
--
-             let libdir_relative = builder.libdir_relative(compiler);
- 
-             // Copy runtime DLLs needed by the compiler
-@@ -1521,12 +1509,6 @@ fn filter(contents: &str, marker: &str) -> String {
+@@ -1495,10 +1495,6 @@ impl Step for Extended {
              };
              prepare("rustc");
              prepare("cargo");
@@ -116,12 +119,10 @@ index 42352285182..6a5438b27d9 100644
 -            prepare("rust-docs");
 -            prepare("rust-std");
 -            prepare("clippy");
--            prepare("miri");
--            prepare("rust-analyzer");
-             for tool in &["rust-demangler"] {
+             for tool in &["rust-demangler", "rls", "rust-analyzer", "miri"] {
                  if built_tools.contains(tool) {
                      prepare(tool);
-@@ -1535,311 +1517,10 @@ fn filter(contents: &str, marker: &str) -> String {
+@@ -1507,349 +1503,10 @@ impl Step for Extended {
              if target.ends_with("windows-gnu") {
                  prepare("rust-mingw");
              }
@@ -201,23 +202,44 @@ index 42352285182..6a5438b27d9 100644
 -                    .arg("-out")
 -                    .arg(exe.join("StdGroup.wxs")),
 -            );
--            builder.run(
--                Command::new(&heat)
--                    .current_dir(&exe)
--                    .arg("dir")
--                    .arg("rust-analyzer")
--                    .args(&heat_flags)
--                    .arg("-cg")
--                    .arg("RustAnalyzerGroup")
--                    .arg("-dr")
--                    .arg("RustAnalyzer")
--                    .arg("-var")
--                    .arg("var.RustAnalyzerDir")
--                    .arg("-out")
--                    .arg(exe.join("RustAnalyzerGroup.wxs"))
--                    .arg("-t")
--                    .arg(etc.join("msi/remove-duplicates.xsl")),
--            );
+-            if built_tools.contains("rls") {
+-                builder.run(
+-                    Command::new(&heat)
+-                        .current_dir(&exe)
+-                        .arg("dir")
+-                        .arg("rls")
+-                        .args(&heat_flags)
+-                        .arg("-cg")
+-                        .arg("RlsGroup")
+-                        .arg("-dr")
+-                        .arg("Rls")
+-                        .arg("-var")
+-                        .arg("var.RlsDir")
+-                        .arg("-out")
+-                        .arg(exe.join("RlsGroup.wxs"))
+-                        .arg("-t")
+-                        .arg(etc.join("msi/remove-duplicates.xsl")),
+-                );
+-            }
+-            if built_tools.contains("rust-analyzer") {
+-                builder.run(
+-                    Command::new(&heat)
+-                        .current_dir(&exe)
+-                        .arg("dir")
+-                        .arg("rust-analyzer")
+-                        .args(&heat_flags)
+-                        .arg("-cg")
+-                        .arg("RustAnalyzerGroup")
+-                        .arg("-dr")
+-                        .arg("RustAnalyzer")
+-                        .arg("-var")
+-                        .arg("var.RustAnalyzerDir")
+-                        .arg("-out")
+-                        .arg(exe.join("RustAnalyzerGroup.wxs"))
+-                        .arg("-t")
+-                        .arg(etc.join("msi/remove-duplicates.xsl")),
+-                );
+-            }
 -            builder.run(
 -                Command::new(&heat)
 -                    .current_dir(&exe)
@@ -254,23 +276,25 @@ index 42352285182..6a5438b27d9 100644
 -                        .arg(etc.join("msi/remove-duplicates.xsl")),
 -                );
 -            }
--            builder.run(
--                Command::new(&heat)
--                    .current_dir(&exe)
--                    .arg("dir")
--                    .arg("miri")
--                    .args(&heat_flags)
--                    .arg("-cg")
--                    .arg("MiriGroup")
--                    .arg("-dr")
--                    .arg("Miri")
--                    .arg("-var")
--                    .arg("var.MiriDir")
--                    .arg("-out")
--                    .arg(exe.join("MiriGroup.wxs"))
--                    .arg("-t")
--                    .arg(etc.join("msi/remove-duplicates.xsl")),
--            );
+-            if built_tools.contains("miri") {
+-                builder.run(
+-                    Command::new(&heat)
+-                        .current_dir(&exe)
+-                        .arg("dir")
+-                        .arg("miri")
+-                        .args(&heat_flags)
+-                        .arg("-cg")
+-                        .arg("MiriGroup")
+-                        .arg("-dr")
+-                        .arg("Miri")
+-                        .arg("-var")
+-                        .arg("var.MiriDir")
+-                        .arg("-out")
+-                        .arg(exe.join("MiriGroup.wxs"))
+-                        .arg("-t")
+-                        .arg(etc.join("msi/remove-duplicates.xsl")),
+-                );
+-            }
 -            builder.run(
 -                Command::new(&heat)
 -                    .current_dir(&exe)
@@ -318,7 +342,6 @@ index 42352285182..6a5438b27d9 100644
 -                    .arg("-dStdDir=rust-std")
 -                    .arg("-dAnalysisDir=rust-analysis")
 -                    .arg("-dClippyDir=clippy")
--                    .arg("-dMiriDir=miri")
 -                    .arg("-arch")
 -                    .arg(&arch)
 -                    .arg("-out")
@@ -329,8 +352,14 @@ index 42352285182..6a5438b27d9 100644
 -                if built_tools.contains("rust-demangler") {
 -                    cmd.arg("-dRustDemanglerDir=rust-demangler");
 -                }
+-                if built_tools.contains("rls") {
+-                    cmd.arg("-dRlsDir=rls");
+-                }
 -                if built_tools.contains("rust-analyzer") {
 -                    cmd.arg("-dRustAnalyzerDir=rust-analyzer");
+-                }
+-                if built_tools.contains("miri") {
+-                    cmd.arg("-dMiriDir=miri");
 -                }
 -                if target.ends_with("windows-gnu") {
 -                    cmd.arg("-dGccDir=rust-mingw");
@@ -345,12 +374,17 @@ index 42352285182..6a5438b27d9 100644
 -            candle("CargoGroup.wxs".as_ref());
 -            candle("StdGroup.wxs".as_ref());
 -            candle("ClippyGroup.wxs".as_ref());
--            candle("MiriGroup.wxs".as_ref());
 -            if built_tools.contains("rust-demangler") {
 -                candle("RustDemanglerGroup.wxs".as_ref());
 -            }
+-            if built_tools.contains("rls") {
+-                candle("RlsGroup.wxs".as_ref());
+-            }
 -            if built_tools.contains("rust-analyzer") {
 -                candle("RustAnalyzerGroup.wxs".as_ref());
+-            }
+-            if built_tools.contains("miri") {
+-                candle("MiriGroup.wxs".as_ref());
 -            }
 -            candle("AnalysisGroup.wxs".as_ref());
 -
@@ -381,14 +415,19 @@ index 42352285182..6a5438b27d9 100644
 -                .arg("StdGroup.wixobj")
 -                .arg("AnalysisGroup.wixobj")
 -                .arg("ClippyGroup.wixobj")
--                .arg("MiriGroup.wixobj")
 -                .current_dir(&exe);
 -
+-            if built_tools.contains("rls") {
+-                cmd.arg("RlsGroup.wixobj");
+-            }
 -            if built_tools.contains("rust-analyzer") {
 -                cmd.arg("RustAnalyzerGroup.wixobj");
 -            }
 -            if built_tools.contains("rust-demangler") {
 -                cmd.arg("RustDemanglerGroup.wixobj");
+-            }
+-            if built_tools.contains("miri") {
+-                cmd.arg("MiriGroup.wixobj");
 -            }
 -
 -            if target.ends_with("windows-gnu") {
