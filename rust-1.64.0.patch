@@ -1,8 +1,29 @@
+Index: library/panic_unwind/src/gcc.rs
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/library/panic_unwind/src/gcc.rs b/library/panic_unwind/src/gcc.rs
+--- a/library/panic_unwind/src/gcc.rs	(revision a55dd71d5fb0ec5a6a3a9e8c27b2127ba491ce52)
++++ b/library/panic_unwind/src/gcc.rs	(date 1667304505553)
+@@ -263,7 +263,7 @@
+         }
+ 
+         cfg_if::cfg_if! {
+-            if #[cfg(all(windows, target_arch = "x86_64", target_env = "gnu"))] {
++            if #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64"), target_env = "gnu"))] {
+                 // On x86_64 MinGW targets, the unwinding mechanism is SEH however the unwind
+                 // handler data (aka LSDA) uses GCC-compatible encoding.
+                 #[lang = "eh_personality"]
+Index: Cargo.lock
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
 diff --git a/Cargo.lock b/Cargo.lock
-index 5db3c6d55..a54c97cce 100644
---- a/Cargo.lock
-+++ b/Cargo.lock
-@@ -3024,9 +3024,9 @@ dependencies = [
+--- a/Cargo.lock	(revision a55dd71d5fb0ec5a6a3a9e8c27b2127ba491ce52)
++++ b/Cargo.lock	(date 1667304505553)
+@@ -3034,9 +3034,9 @@
  
  [[package]]
  name = "psm"
@@ -14,7 +35,7 @@ index 5db3c6d55..a54c97cce 100644
  dependencies = [
   "cc",
  ]
-@@ -4998,9 +4998,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
+@@ -5035,9 +5035,9 @@
  
  [[package]]
  name = "stacker"
@@ -26,55 +47,15 @@ index 5db3c6d55..a54c97cce 100644
  dependencies = [
   "cc",
   "cfg-if 1.0.0",
-diff --git a/compiler/rustc_llvm/build.rs b/compiler/rustc_llvm/build.rs
-index 7729ec6be..ffbf90cf3 100644
---- a/compiler/rustc_llvm/build.rs
-+++ b/compiler/rustc_llvm/build.rs
-@@ -137,7 +137,6 @@ fn main() {
-         "aarch64",
-         "amdgpu",
-         "avr",
--        "m68k",
-         "mips",
-         "powerpc",
-         "systemz",
-diff --git a/compiler/rustc_llvm/src/lib.rs b/compiler/rustc_llvm/src/lib.rs
-index 8eade02a4..ad3cb421f 100644
---- a/compiler/rustc_llvm/src/lib.rs
-+++ b/compiler/rustc_llvm/src/lib.rs
-@@ -92,14 +92,6 @@ pub fn initialize_available_targets() {
-         LLVMInitializeAVRAsmPrinter,
-         LLVMInitializeAVRAsmParser
-     );
--    init_target!(
--        llvm_component = "m68k",
--        LLVMInitializeM68kTargetInfo,
--        LLVMInitializeM68kTarget,
--        LLVMInitializeM68kTargetMC,
--        LLVMInitializeM68kAsmPrinter,
--        LLVMInitializeM68kAsmParser
--    );
-     init_target!(
-         llvm_component = "mips",
-         LLVMInitializeMipsTargetInfo,
-diff --git a/library/panic_unwind/src/gcc.rs b/library/panic_unwind/src/gcc.rs
-index a0297b4b2..8db74f66b 100644
---- a/library/panic_unwind/src/gcc.rs
-+++ b/library/panic_unwind/src/gcc.rs
-@@ -263,7 +263,7 @@ cfg_if::cfg_if! {
-         }
- 
-         cfg_if::cfg_if! {
--            if #[cfg(all(windows, target_arch = "x86_64", target_env = "gnu"))] {
-+            if #[cfg(all(windows, any(target_arch = "aarch64", target_arch = "x86_64"), target_env = "gnu"))] {
-                 // On x86_64 MinGW targets, the unwinding mechanism is SEH however the unwind
-                 // handler data (aka LSDA) uses GCC-compatible encoding.
-                 #[lang = "eh_personality"]
+Index: library/unwind/src/libunwind.rs
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
 diff --git a/library/unwind/src/libunwind.rs b/library/unwind/src/libunwind.rs
-index 7b78bda42..8eb4a4484 100644
---- a/library/unwind/src/libunwind.rs
-+++ b/library/unwind/src/libunwind.rs
-@@ -37,7 +37,7 @@ pub const unwinder_private_data_size: usize = 20;
+--- a/library/unwind/src/libunwind.rs	(revision a55dd71d5fb0ec5a6a3a9e8c27b2127ba491ce52)
++++ b/library/unwind/src/libunwind.rs	(date 1667304505553)
+@@ -37,7 +37,7 @@
  pub const unwinder_private_data_size: usize = 5;
  
  #[cfg(all(target_arch = "aarch64", target_pointer_width = "64"))]
@@ -83,7 +64,7 @@ index 7b78bda42..8eb4a4484 100644
  
  #[cfg(all(target_arch = "aarch64", target_pointer_width = "32"))]
  pub const unwinder_private_data_size: usize = 5;
-@@ -90,7 +90,13 @@ pub type _Unwind_Exception_Cleanup_Fn =
+@@ -90,7 +90,13 @@
  // rustc_codegen_ssa::src::back::symbol_export, rustc_middle::middle::exported_symbols
  // and RFC 2841
  #[cfg_attr(
@@ -98,7 +79,7 @@ index 7b78bda42..8eb4a4484 100644
      link(name = "unwind", kind = "static", modifiers = "-bundle")
  )]
  extern "C-unwind" {
-@@ -269,7 +275,7 @@ if #[cfg(not(all(target_os = "ios", target_arch = "arm")))] {
+@@ -269,7 +275,7 @@
  } // cfg_if!
  
  cfg_if::cfg_if! {
@@ -107,11 +88,34 @@ index 7b78bda42..8eb4a4484 100644
      // We declare these as opaque types. This is fine since you just need to
      // pass them to _GCC_specific_handler and forget about them.
      pub enum EXCEPTION_RECORD {}
+Index: src/bootstrap/dist.rs
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
 diff --git a/src/bootstrap/dist.rs b/src/bootstrap/dist.rs
-index b1fae356d..053844791 100644
---- a/src/bootstrap/dist.rs
-+++ b/src/bootstrap/dist.rs
-@@ -1495,10 +1495,6 @@ impl Step for Extended {
+--- a/src/bootstrap/dist.rs	(revision a55dd71d5fb0ec5a6a3a9e8c27b2127ba491ce52)
++++ b/src/bootstrap/dist.rs	(date 1667412814673)
+@@ -362,18 +362,6 @@
+ 
+             builder.install(&builder.rustdoc(compiler), &image.join("bin"), 0o755);
+ 
+-            let ra_proc_macro_srv = builder
+-                .ensure(tool::RustAnalyzerProcMacroSrv {
+-                    compiler: builder.compiler_for(
+-                        compiler.stage,
+-                        builder.config.build,
+-                        compiler.host,
+-                    ),
+-                    target: compiler.host,
+-                })
+-                .expect("rust-analyzer-proc-macro-server always builds");
+-            builder.install(&ra_proc_macro_srv, &image.join("libexec"), 0o755);
+-
+             let libdir_relative = builder.libdir_relative(compiler);
+ 
+             // Copy runtime DLLs needed by the compiler
+@@ -1516,10 +1504,6 @@
              };
              prepare("rustc");
              prepare("cargo");
@@ -122,7 +126,7 @@ index b1fae356d..053844791 100644
              for tool in &["rust-demangler", "rls", "rust-analyzer", "miri"] {
                  if built_tools.contains(tool) {
                      prepare(tool);
-@@ -1507,349 +1503,10 @@ impl Step for Extended {
+@@ -1528,346 +1512,7 @@
              if target.ends_with("windows-gnu") {
                  prepare("rust-mingw");
              }
@@ -442,10 +446,10 @@ index b1fae356d..053844791 100644
 -            if !builder.config.dry_run {
 -                t!(fs::rename(exe.join(&filename), distdir(builder).join(&filename)));
 -            }
-         }
-     }
- }
- 
+-        }
+-    }
+-}
+-
 -fn add_env(builder: &Builder<'_>, cmd: &mut Command, target: TargetSelection) {
 -    let mut parts = builder.version.split('.');
 -    cmd.env("CFG_RELEASE_INFO", builder.rust_version())
@@ -466,9 +470,7 @@ index b1fae356d..053844791 100644
 -        cmd.env("CFG_MINGW", "1").env("CFG_ABI", "GNU");
 -    } else {
 -        cmd.env("CFG_MINGW", "0").env("CFG_ABI", "MSVC");
--    }
--}
--
- /// Maybe add LLVM object files to the given destination lib-dir. Allows either static or dynamic linking.
- ///
- /// Returns whether the files were actually copied.
++        }
+     }
+ }
+ 

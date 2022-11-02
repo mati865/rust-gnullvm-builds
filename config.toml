@@ -146,7 +146,6 @@ experimental-targets = "AVR"
 #use-libcxx = false
 
 # The value specified here will be passed as `-DLLVM_USE_LINKER` to CMake.
-#use-linker = <none> (path)
 use-linker = "lld"
 
 # Whether or not to specify `-DLLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN=YES`
@@ -227,7 +226,7 @@ target = ["aarch64-pc-windows-gnullvm", "x86_64-pc-windows-gnullvm"]
 # Flag to specify whether any documentation is built. If false, rustdoc and
 # friends will still be compiled but they will not be used to generate any
 # documentation.
-docs = false
+#docs = true
 
 # Flag to specify whether CSS, JavaScript, and HTML are minified when
 # docs are generated. JSON is always minified, because it's enormous,
@@ -722,20 +721,6 @@ use-lld = true
 # probably don't want to use this.
 #qemu-rootfs = <none> (path)
 
-[target.aarch64-pc-windows-gnullvm]
-cc = "/home/mateusz/llvm-mingw-20220906-ucrt-ubuntu-18.04-x86_64/bin/aarch64-w64-mingw32-clang"
-cxx = "/home/mateusz/llvm-mingw-20220906-ucrt-ubuntu-18.04-x86_64/bin/aarch64-w64-mingw32-clang++"
-ar = "/home/mateusz/llvm-mingw-20220906-ucrt-ubuntu-18.04-x86_64/bin/aarch64-w64-mingw32-ar"
-ranlib = "/home/mateusz/llvm-mingw-20220906-ucrt-ubuntu-18.04-x86_64/bin/aarch64-w64-mingw32-ranlib"
-linker = "/home/mateusz/llvm-mingw-20220906-ucrt-ubuntu-18.04-x86_64/bin/aarch64-w64-mingw32-clang"
-
-[target.x86_64-pc-windows-gnullvm]
-cc = "/home/mateusz/llvm-mingw-20220906-ucrt-ubuntu-18.04-x86_64/bin/x86_64-w64-mingw32-clang"
-cxx = "/home/mateusz/llvm-mingw-20220906-ucrt-ubuntu-18.04-x86_64/bin/x86_64-w64-mingw32-clang++"
-ar = "/home/mateusz/llvm-mingw-20220906-ucrt-ubuntu-18.04-x86_64/bin/x86_64-w64-mingw32-ar"
-ranlib = "/home/mateusz/llvm-mingw-20220906-ucrt-ubuntu-18.04-x86_64/bin/x86_64-w64-mingw32-ranlib"
-linker = "/home/mateusz/llvm-mingw-20220906-ucrt-ubuntu-18.04-x86_64/bin/x86_64-w64-mingw32-clang"
-
 # =============================================================================
 # Distribution options
 #
@@ -768,7 +753,7 @@ linker = "/home/mateusz/llvm-mingw-20220906-ucrt-ubuntu-18.04-x86_64/bin/x86_64-
 #src-tarball = true
 
 # Whether to allow failures when building tools
-#missing-tools = false
+missing-tools = true
 
 # List of compression formats to use when generating dist tarballs. The list of
 # formats is provided to rust-installer, which must support all of them.
